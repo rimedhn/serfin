@@ -512,7 +512,7 @@
       document.getElementById("Gastos").textContent = formatCurrency(gastos);
       document.getElementById("Financiado").textContent = formatCurrency(valorFinanciado);
       document.getElementById("PlazoLetras").textContent = (prestamo.Plazo ? prestamo.Plazo + " Periodos" : "N/A");
-      document.getElementById("FechaAprobado").textContent = formatFechaDMY(prestamo.FechaAprobado);
+      document.getElementById("FechaAprobado").textContent = formatFechaDMY(prestamo.FechaTramite);
       document.getElementById("TipoTasa").textContent = prestamo.TipoTasa || "Fija";
       document.getElementById("PeriodoPago").textContent = periodoPago;
 
