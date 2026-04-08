@@ -321,7 +321,7 @@
     </table>
 
     <div class="footer-info">
-      Este documento es un estado de cuenta proyectado. <span style="color:#22863a;">Verde = Pagado</span> | <span style="color:#cb2431;">Rojo = Vencido</span> | <span style="color:#1a1a1a;">Negro = Pendiente</span>
+      Este documento es un estado de cuenta proyectado. <span style="color:#22863a;">Verde = Pagado</span> | <span style="color:#cb2431;">Rojo = Vencido</span> | <span style="color:#1a1a1a;">Negro = Pendiente</span>.
     </div>
   </div>
 
@@ -336,7 +336,7 @@
     function fetchJSON(url){ return fetch(url).then(r=>r.json()); }
 
     function formatCurrency(num){ if(isNaN(num))return "L 0.00"; return "L "+parseFloat(num).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-    function parseNumber(val){ if(val==undefined || val==null) return 0; val=(""+val).replace("L","").replace("$","").replace(/,/g,"").trim(); return parseFloat(val)||0; }
+    function parseNumber(val){ if(val==undefined || val==null) return 0; val=(""+val).replace("L","" ).replace("$","" ).replace( /,/g,"" ).trim(); return parseFloat(val)||0; }
 
     // Parse dd/mm/yyyy -> Date
     function parseDateDMY(s) {
@@ -368,6 +368,40 @@
       let mm = (d.getMonth()+1)>9?(d.getMonth()+1):"0"+(d.getMonth()+1);
       let yyyy=d.getFullYear();
       return dd+"/"+mm+"/"+yyyy;
+    }
+
+    // === NUEVO: parsear "Fecha Hora" en formato: dd/mm/yyyy HH:MM:SS ===
+    // Ej: 16/03/2026 14:21:46
+    function parseFechaHoraDMYHMS(fechaHoraStr, fechaFallbackStr) {
+      if (!fechaHoraStr || String(fechaHoraStr).trim() === "") {
+        return parseDateDMY(fechaFallbackStr || "") || null;
+      }
+
+      const raw = String(fechaHoraStr).trim();
+      const parts = raw.split(" ");
+      const fechaPart = parts[0] || "";
+      const horaPart = parts[1] || "";
+
+      const dmy = fechaPart.split("/");
+      if (dmy.length !== 3) return parseDateDMY(fechaFallbackStr || "") || null;
+
+      const dd = parseInt(dmy[0], 10);
+      const mm = parseInt(dmy[1], 10);
+      const yyyy = parseInt(dmy[2], 10);
+      if (isNaN(dd) || isNaN(mm) || isNaN(yyyy)) return parseDateDMY(fechaFallbackStr || "") || null;
+
+      let hh = 0, mi = 0, ss = 0;
+      if (horaPart) {
+        const t = horaPart.split(":");
+        hh = parseInt(t[0], 10) || 0;
+        mi = parseInt(t[1], 10) || 0;
+        ss = (t.length >= 3 ? (parseInt(t[2], 10) || 0) : 0);
+      }
+
+      const dt = new Date(yyyy, mm - 1, dd, hh, mi, ss, 0);
+      if (!isNaN(dt.getTime())) return dt;
+
+      return parseDateDMY(fechaFallbackStr || "") || null;
     }
 
     // Calcula la abreviatura del mes y año según la fecha de vencimiento calculada
@@ -526,13 +560,17 @@
       document.getElementById("CuotaNiveladaCalculo").textContent = formatCurrency(cuotaCalculada);
       document.getElementById("SaldoInicial").textContent = formatCurrency(valorFinanciado);
 
-      // Ordenar abonos por campo Fecha (dd/mm/yyyy) y excluir Estado "Anulado"
+      // Filtrar abonos del préstamo (excluir anulado) y ordenar por "Fecha Hora" (fallback a Fecha)
       let abonosPrestamo = abonos
-        .filter(a => String(a.Prestamo) == String(idprestamo) && String((a.Estado||"")).trim().toLowerCase() !== "anulado")
+        .filter(a => String(a.Prestamo) == String(idprestamo) && String((a.Estado||"").trim().toLowerCase() !== "anulado")
+        .map(a => {
+          const dt = parseFechaHoraDMYHMS(a["Fecha Hora"], a.Fecha);
+          return { ...a, __dt: dt };
+        })
         .sort((a,b) => {
-          let fa = parseDateDMY(a.Fecha || "") || new Date(0);
-          let fb = parseDateDMY(b.Fecha || "") || new Date(0);
-          return fa - fb;
+          const ta = a.__dt ? a.__dt.getTime() : 0;
+          const tb = b.__dt ? b.__dt.getTime() : 0;
+          return ta - tb;
         });
 
       let saldoActual = valorFinanciado;
@@ -553,23 +591,43 @@
         tasaPorPeriodo = tasaNum;
       }
 
-      // Crear un mapa de abonos pagados por número de cuota
-      let abonosPagados = {};
-      for (let ab of abonosPrestamo) {
-        let noCuota = parseInt(ab["No cuota"]) || 0;
-        if (noCuota > 0) {
-          if (!abonosPagados[noCuota]) {
-            abonosPagados[noCuota] = {
-              fecha: ab.Fecha,
-              pago: parseNumber(ab.Monto),
-              capital: parseNumber(ab.Capital),
-              interes: parseNumber(ab.Interes),
-              cuota: parseNumber(ab.Cuota),
-              mora: parseNumber(ab.Recargo),
-              abonoCapital: parseNumber(ab["Abono capital"])
-            };
-          }
+      // =========================================================
+      // === NUEVO: asignar No. de cuota automáticamente (1..n) ===
+      // Basado en el orden real de pagos por "Fecha Hora".
+      // Se IGNORA la columna "No cuota" para marcar pagos.
+      // Si hay más abonos que plazo, los excedentes quedan fuera de proyección.
+      // =========================================================
+      let abonosPagados = {}; // { 1: {...}, 2: {...} ... }
+
+      for (let idx = 0; idx < abonosPrestamo.length; idx++) {
+        const ab = abonosPrestamo[idx];
+
+        const cuotaAuto = idx + 1;
+        if (plazo > 0 && cuotaAuto > plazo) break; // no proyectar más allá del plazo
+
+        if (!abonosPagados[cuotaAuto]) {
+          abonosPagados[cuotaAuto] = {
+            // fecha para mostrar: priorizar Fecha (dd/mm/yyyy) si viene; si no, usar __dt
+            fecha: ab.Fecha || (ab.__dt ? formatDateObjectDMY(ab.__dt) : ""),
+            pago: 0,
+            capital: 0,
+            interes: 0,
+            cuota: 0,
+            mora: 0,
+            abonoCapital: 0
+          };
         }
+
+        // Acumular (por si hay pagos parciales)
+        abonosPagados[cuotaAuto].pago += parseNumber(ab.Monto);
+        abonosPagados[cuotaAuto].capital += parseNumber(ab.Capital);
+        abonosPagados[cuotaAuto].interes += parseNumber(ab.Interes);
+        abonosPagados[cuotaAuto].cuota += parseNumber(ab.Cuota);
+        abonosPagados[cuotaAuto].mora += parseNumber(ab.Recargo);
+        abonosPagados[cuotaAuto].abonoCapital += parseNumber(ab["Abono capital"]);
+
+        // Para la fecha a mostrar, conservar la última fecha del grupo (la más reciente dentro de esa cuota)
+        abonosPagados[cuotaAuto].fecha = ab.Fecha || (ab.__dt ? formatDateObjectDMY(ab.__dt) : abonosPagados[cuotaAuto].fecha);
       }
 
       // Proyectar todas las cuotas hasta el plazo
@@ -593,7 +651,7 @@
         let abonoCapital = 0;
         let estadoCuota = "pendiente"; // por defecto
 
-        // Verificar si esta cuota fue pagada
+        // Verificar si esta cuota fue pagada (usando cuota auto-calculada)
         if (abonosPagados[noCuota]) {
           let abono = abonosPagados[noCuota];
           fechaMostrar = formatFechaDMY(abono.fecha);
