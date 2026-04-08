@@ -511,7 +511,7 @@
       let monto = obtenerValor(aviso, "Monto", "0");
       let cuotas = obtenerValor(aviso, "Cuotas", "0");
       let ultimoPago = obtenerValor(aviso, "UltimoPago", "");
-      let periodo = obtenerValor(aviso, "Periodo", prestamo ? (prestamo["Periodo Pago en dias"] || "30") : "30");
+      let periodo = obtenerValor(aviso, "Periodo Pago en dias", prestamo ? (prestamo["Periodo Pago en dias"] || "30") : "30");
 
       // Datos básicos del aviso
       document.getElementById("tituloAviso").textContent = aviso.Aviso || "AVISO DE COBRO";
