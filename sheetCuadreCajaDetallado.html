@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cuadre de Caja</title>
+    <link rel="icon" href="https://github.com/rimedhn/serfin/blob/main/Logo%20Serfin%20Corto.png?raw=true" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10mm auto; /* Centrar en la página */
+            box-sizing: border-box; /* Asegura que padding no afecte el ancho total */
+            padding: 5mm;
+        }
+
+        #arqueo-flexible {
+            width: 100%; /* Ancho adaptable al contenedor body */
+            max-width: 800px; /* Ancho máximo para evitar que se extienda demasiado */
+        }
+
+        #arqueo-flexible h2 {
+            font-size: 1.2em; /* Tamaño relativo */
+            line-height: 1.2;
+            text-align: center;
+            margin-top: 0.3em;
+            margin-bottom: 0.3em;
+        }
+
+        #arqueo-flexible .label {
+            text-align: center;
+            font-size: 1.5em; /* Tamaño relativo */
+            line-height: 1.5;
+            margin-bottom: 0.5em;
+        }
+
+        #arqueo-flexible .informasi {
+            vertical-align: top;
+            text-align: left;
+            word-wrap: break-word;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible .listitem {
+            font-size: 0.9em; /* Tamaño relativo */
+            line-height: 1.2;
+        }
+
+        #arqueo-flexible table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+
+        #arqueo-flexible th, #arqueo-flexible td {
+            padding: 0.3em;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible th {
+            font-weight: bold;
+        }
+
+        #arqueo-flexible .descriptions {
+            width: 100%;
+            text-align: left;
+            font-weight: bold;
+            padding-top: 0.2em;
+            padding-bottom: 0.2em;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible .qty {
+            width: 20%;
+            text-align: left;
+        }
+
+        #arqueo-flexible .Amount {
+            width: 80%;
+            text-align: right;
+        }
+
+        #arqueo-flexible .detail {
+            text-align: left;
+            font-weight: bold;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible .detail1 {
+            text-align: right;
+            font-weight: bold;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible .bawah {
+            margin-top: 1em;
+            text-align: center;
+            font-size: 0.9em; /* Tamaño relativo */
+        }
+
+        #arqueo-flexible .mi-imagen {
+            max-width: 150px; /* Ancho máximo relativo al contenedor */
+            height: auto; /* Altura automática para mantener la proporción */
+            display: block;
+            margin: 0 auto 0.5em auto;
+        }
+
+        #arqueo-flexible .separador {
+            border-top: 1px dashed #bbb;
+            margin: 0.5em 0;
+        }
+
+        /* ===========================
+           DETALLE PAGOS (RESPONSIVO)
+           - En ticket: encabezados Monto/Capital/Interes/Recargo, luego nombre (fila completa),
+             y luego valores alineados con encabezados.
+           - En hoja normal: tabla clásica Nombre/Monto/Capital/Interes/Recargo
+           =========================== */
+
+        /* Tabla normal (hoja) */
+        #pagosTableNormal th, #pagosTableNormal td {
+            padding: 0.3em;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+        }
+        #pagosTableNormal th:nth-child(n+2),
+        #pagosTableNormal td:nth-child(n+2) {
+            text-align: right;
+        }
+
+        /* Ticket layout */
+        #pagosTicket {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #pagosTicket th, #pagosTicket td {
+            padding: 0.25em 0.15em;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.85em;
+        }
+        #pagosTicket .ticket-head th {
+            text-align: right;
+            font-weight: bold;
+        }
+        #pagosTicket .ticket-name td {
+            text-align: left;
+            font-weight: bold;
+            border-bottom: none;
+            padding-top: 0.35em;
+        }
+        #pagosTicket .ticket-values td {
+            text-align: right;
+            padding-bottom: 0.35em;
+        }
+
+        /* Totales */
+        #pagosTableNormal .totales-row td {
+            font-weight: bold;
+        }
+        #pagosTicket .ticket-totals-head th {
+            text-align: right;
+            font-weight: bold;
+        }
+        #pagosTicket .ticket-totals-values td {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        /* Forzar salto de página antes del detalle de pagos */
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+        }
+
+        /* Mostrar tabla según ancho (ajustable) */
+        /* Puedes cambiar 480px si tu impresora ticket tiene otro viewport/ancho */
+        @media (max-width: 480px) {
+            #pagosNormalContainer { display: none; }
+            #pagosTicketContainer { display: block; }
+        }
+        @media (min-width: 481px) {
+            #pagosNormalContainer { display: block; }
+            #pagosTicketContainer { display: none; }
+        }
+    </style>
+</head>
+<body id="all">
+    <div id="arqueo-flexible">
+        <div class="label">
+            <img src="https://github.com/rimedhn/serfin/blob/main/Logo%20Serfin%20Corto.png?raw=true" alt="Mi imagen" class="mi-imagen" />
+            <b><span id="empresa"></span></b><br />
+            <span id="sucursal"></span><br /><br />
+            <b><span>CUADRE DE CAJA</span></b><br />
+        </div>
+
+        <div class="separador"></div>
+        <div style="text-align: center;"><b>DATOS GENERALES</b></div>
+        <div class="separador"></div>
+
+        <table>
+            <tr>
+                <td class="informasi" style="width: 30%;">FECHA:</td>
+                <td class="informasi" style="width: 70%;" id="fecha"></td>
+            </tr>
+            <tr>
+                <td class="informasi" style="width: 30%;">CAJA:</td>
+                <td class="informasi" style="width: 70%;" id="caja"></td>
+            </tr>
+            <tr>
+                <td class="informasi" style="width: 30%;">CAJERO:</td>
+                <td class="informasi" style="width: 70%;" id="cajero"></td>
+            </tr>
+        </table>
+
+        <div class="separador"></div>
+        <div style="text-align: center;">DETALLE DEL CUADRE</div>
+        <div class="separador"></div>
+
+        <table>
+            <thead>
+                <tr class="listitem">
+                    <th>DETALLE</th>
+                    <th style="text-align: right;">INGRESOS</th>
+                    <th style="text-align: right;">DECLARADO</th>
+                    <th style="text-align: right;">DIFERENCIA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="listitem">
+                    <th>EFECTIVO</th>
+                    <th style="text-align: right;">L<span id="ingresosEfectivo"></span></th>
+                    <th style="text-align: right;">L<span id="declaradoEfectivo"></span></th>
+                    <th style="text-align: right;">L<span id="diferenciaEfectivo"></span></th>
+                </tr>
+                <tr class="listitem">
+                    <th>TARJETAS</th>
+                    <th style="text-align: right;">L<span id="ingresosTarjetas"></span></th>
+                    <th style="text-align: right;">L<span id="declaradoTarjetas"></span></th>
+                    <th style="text-align: right;">L<span id="diferenciaTarjetas"></span></th>
+                </tr>
+                <tr class="listitem">
+                    <th>DEPOSITOS</th>
+                    <th style="text-align: right;">L<span id="ingresosDepositos"></span></th>
+                    <th style="text-align: right;">L<span id="declaradoDepositos"></span></th>
+                    <th style="text-align: right;">L<span id="diferenciaDepositos"></span></th>
+                </tr>
+                <tr class="listitem">
+                    <th>TRANSFERENCIAS</th>
+                    <th style="text-align: right;">L<span id="ingresosTransferencias"></span></th>
+                    <th style="text-align: right;">L<span id="declaradoTransferencias"></span></th>
+                    <th style="text-align: right;">L<span id="diferenciaTransferencias"></span></th>
+                </tr>
+                <tr class="listitem">
+                    <th>TOTALES</th>
+                    <th style="text-align: right;">L<span id="totalIngresos"></span></th>
+                    <th style="text-align: right;">L<span id="totalDeclarado"></span></th>
+                    <th style="text-align: right;">L<span id="totalDiferencias"></span></th>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="separador"></div>
+        <table>
+            <tr>
+                <td class="detail" style="text-align: right;">EFECTIVO INICIAL</td>
+                <td class="detail1" style="text-align: right;">L<span id="efectivoInicial"></span></td>
+            </tr>
+            <tr class="listitem">
+                <th style="text-align: right;" colspan:3>TOTAL INGRESOS</th>
+                <th style="text-align: right;">L<span id="ingresosTotales"></span></th>
+            </tr>
+            <tr class="listitem">
+                <th style="text-align: right;">TOTAL EGRESOS</th>
+                <th style="text-align: right;">L<span id="egresosTotales"></span></th>
+            </tr>
+            <tr class="listitem">
+                <th style="text-align: right;">SALDO CAJA</th>
+                <th style="text-align: right;">L<span id="saldoCaja"></span></th>
+            </tr>
+            <tr class="listitem">
+                <th style="text-align: right;">EFECTIVO EN CAJA</th>
+                <th style="text-align: right;">L<span id="efectivoEnCaja"></span></th>
+            </tr>
+            <tr class="listitem">
+                <th style="text-align: right;">DIFERENCIA</th>
+                <th style="text-align: right;">L<span id="diferencia"></span></th>
+            </tr>
+        </table>
+
+        <div class="separador"></div>
+        <div style="text-align: center;">REFERENCIA: <span id="folio"></span></div>
+        <div class="separador"></div>
+        <div class="bawah"></div>
+        <div class="separador"></div>
+
+        <!-- ===========================
+             SIGUIENTE PÁGINA: DETALLE DE PAGOS
+             =========================== -->
+        <div class="page-break"></div>
+
+        <div class="separador"></div>
+        <br><br><br><div style="text-align: center;"><b>DETALLE DE PAGOS</b></div>
+        <div class="separador"></div>
+
+        <!-- Contenedor para hoja normal -->
+        <div id="pagosNormalContainer">
+            <table id="pagosTableNormal">
+                <thead>
+                    <tr class="listitem">
+                        <th>NOMBRE</th>
+                        <th>MONTO</th>
+                        <th>CAPITAL</th>
+                        <th>INTERES</th>
+                        <th>RECARGO</th>
+                    </tr>
+                </thead>
+                <tbody id="pagosTbodyNormal"></tbody>
+            </table>
+        </div>
+
+        <!-- Contenedor para ticket -->
+        <div id="pagosTicketContainer">
+            <table id="pagosTicket">
+                <tbody id="pagosTbodyTicket"></tbody>
+            </table>
+        </div>
+
+        <div class="separador"></div>
+    </div>
+
+    <script>
+        // Function to get URL parameters
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
+            var results = regex.exec(location.search);
+            return results === null
+                ? ""
+                : decodeURIComponent(results[1].replace(/\+/g, " "));
+        }
+
+        // Function to set text content of an element
+        function setTextContent(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+
+        // Helpers
+        function splitCsvParam(paramName) {
+            var raw = getUrlParameter(paramName);
+            if (!raw) return [];
+            return raw.split(",").map(function (s) { return s.trim(); });
+        }
+
+        function parseNumberLoose(value) {
+            if (value === null || value === undefined) return 0;
+            var s = String(value).trim();
+            if (!s) return 0;
+
+            // quitar moneda y espacios
+            s = s.replace(/L/gi, "").replace(/\s/g, "");
+
+            // soportar "1,234.56" o "1.234,56"
+            if (s.indexOf(",") !== -1 && s.indexOf(".") !== -1) {
+                if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+                    s = s.replace(/\./g, "").replace(/,/g, ".");
+                } else {
+                    s = s.replace(/,/g, "");
+                }
+            } else if (s.indexOf(",") !== -1 && s.indexOf(".") === -1) {
+                s = s.replace(/,/g, ".");
+            }
+
+            var n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function formatL(value) {
+            // mantener simple: "L" + valor con 2 decimales
+            var n = parseNumberLoose(value);
+            return "L" + n.toFixed(2);
+        }
+
+        function toPaymentsArray() {
+            // Esperados por URL (cada uno separado por comas):
+            // cliente, monto, capital, interes, recargo
+            var clientes = splitCsvParam("cliente");
+            var montos = splitCsvParam("monto");
+            var capitales = splitCsvParam("capital");
+            var intereses = splitCsvParam("interes");
+            var recargos = splitCsvParam("recargo");
+
+            var maxLen = Math.max(
+                clientes.length,
+                montos.length,
+                capitales.length,
+                intereses.length,
+                recargos.length
+            );
+
+            var pagos = [];
+            for (var i = 0; i < maxLen; i++) {
+                pagos.push({
+                    cliente: (clientes[i] || ""),
+                    monto: (montos[i] || ""),
+                    capital: (capitales[i] || ""),
+                    interes: (intereses[i] || ""),
+                    recargo: (recargos[i] || "")
+                });
+            }
+            return pagos;
+        }
+
+        function calcTotals(pagos) {
+            return pagos.reduce(function (acc, p) {
+                acc.monto += parseNumberLoose(p.monto);
+                acc.capital += parseNumberLoose(p.capital);
+                acc.interes += parseNumberLoose(p.interes);
+                acc.recargo += parseNumberLoose(p.recargo);
+                return acc;
+            }, { monto: 0, capital: 0, interes: 0, recargo: 0 });
+        }
+
+        function renderPagosNormal(pagos) {
+            var tbody = document.getElementById("pagosTbodyNormal");
+            tbody.innerHTML = "";
+
+            if (!pagos.length) {
+                var trEmpty = document.createElement("tr");
+                trEmpty.className = "listitem";
+                trEmpty.innerHTML = '<td colspan="5" style="text-align:center;">Sin pagos</td>';
+                tbody.appendChild(trEmpty);
+                return;
+            }
+
+            pagos.forEach(function (p) {
+                var tr = document.createElement("tr");
+                tr.className = "listitem";
+                tr.innerHTML = `
+                    <td style="text-align:left;">${p.cliente}</td>
+                    <td style="text-align:right;">${formatL(p.monto)}</td>
+                    <td style="text-align:right;">${formatL(p.capital)}</td>
+                    <td style="text-align:right;">${formatL(p.interes)}</td>
+                    <td style="text-align:right;">${formatL(p.recargo)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Totales al final
+            var totals = calcTotals(pagos);
+            var trTotal = document.createElement("tr");
+            trTotal.className = "listitem totales-row";
+            trTotal.innerHTML = `
+                <td style="text-align:left;">TOTALES</td>
+                <td style="text-align:right;">${formatL(totals.monto)}</td>
+                <td style="text-align:right;">${formatL(totals.capital)}</td>
+                <td style="text-align:right;">${formatL(totals.interes)}</td>
+                <td style="text-align:right;">${formatL(totals.recargo)}</td>
+            `;
+            tbody.appendChild(trTotal);
+        }
+
+        function renderPagosTicket(pagos) {
+            var tbody = document.getElementById("pagosTbodyTicket");
+            tbody.innerHTML = "";
+
+            if (!pagos.length) {
+                var trEmpty = document.createElement("tr");
+                trEmpty.className = "listitem";
+                trEmpty.innerHTML = '<td style="text-align:center;">Sin pagos</td>';
+                tbody.appendChild(trEmpty);
+                return;
+            }
+
+            pagos.forEach(function (p) {
+                // Encabezados (sin "Cliente")
+                var trHead = document.createElement("tr");
+                trHead.className = "ticket-head";
+                trHead.innerHTML = `
+                    <th style="text-align:right;">MONTO</th>
+                    <th style="text-align:right;">CAPITAL</th>
+                    <th style="text-align:right;">INTERES</th>
+                    <th style="text-align:right;">RECARGO</th>
+                `;
+
+                // Nombre en toda la fila siguiente
+                var trName = document.createElement("tr");
+                trName.className = "ticket-name";
+                trName.innerHTML = `<td colspan="4">${p.cliente}</td>`;
+
+                // Valores alineados verticalmente bajo su encabezado
+                var trValues = document.createElement("tr");
+                trValues.className = "ticket-values";
+                trValues.innerHTML = `
+                    <td>${formatL(p.monto)}</td>
+                    <td>${formatL(p.capital)}</td>
+                    <td>${formatL(p.interes)}</td>
+                    <td>${formatL(p.recargo)}</td>
+                `;
+
+                tbody.appendChild(trHead);
+                tbody.appendChild(trName);
+                tbody.appendChild(trValues);
+            });
+
+            // Totales al final (en ticket)
+            var totals = calcTotals(pagos);
+
+            var trTotalsHead = document.createElement("tr");
+            trTotalsHead.className = "ticket-totals-head";
+            trTotalsHead.innerHTML = `
+                <th style="text-align:right;">MONTO</th>
+                <th style="text-align:right;">CAPITAL</th>
+                <th style="text-align:right;">INTERES</th>
+                <th style="text-align:right;">RECARGO</th>
+            `;
+
+            var trTotalsName = document.createElement("tr");
+            trTotalsName.className = "ticket-name";
+            trTotalsName.innerHTML = `<td colspan="4">TOTALES</td>`;
+
+            var trTotalsValues = document.createElement("tr");
+            trTotalsValues.className = "ticket-totals-values";
+            trTotalsValues.innerHTML = `
+                <td>${formatL(totals.monto)}</td>
+                <td>${formatL(totals.capital)}</td>
+                <td>${formatL(totals.interes)}</td>
+                <td>${formatL(totals.recargo)}</td>
+            `;
+
+            tbody.appendChild(trTotalsHead);
+            tbody.appendChild(trTotalsName);
+            tbody.appendChild(trTotalsValues);
+        }
+
+        // Populate the receipt with data from URL parameters
+        setTextContent("empresa", getUrlParameter("empresa"));
+        setTextContent("sucursal", getUrlParameter("sucursal"));
+        setTextContent("fecha", getUrlParameter("fecha"));
+        setTextContent("caja", getUrlParameter("caja"));
+        setTextContent("cajero", getUrlParameter("cajero"));
+        setTextContent("folio", getUrlParameter("folio"));
+        setTextContent("ingresosEfectivo", getUrlParameter("ingresosEfectivo"));
+        setTextContent("declaradoEfectivo", getUrlParameter("declaradoEfectivo"));
+        setTextContent("diferenciaEfectivo", getUrlParameter("diferenciaEfectivo"));
+        setTextContent("ingresosTarjetas", getUrlParameter("ingresosTarjetas"));
+        setTextContent("declaradoTarjetas", getUrlParameter("declaradoTarjetas"));
+        setTextContent("diferenciaTarjetas", getUrlParameter("diferenciaTarjetas"));
+        setTextContent("ingresosDepositos", getUrlParameter("ingresosDepositos"));
+        setTextContent("declaradoDepositos", getUrlParameter("declaradoDepositos"));
+        setTextContent("diferenciaDepositos", getUrlParameter("diferenciaDepositos"));
+        setTextContent("ingresosTransferencias", getUrlParameter("ingresosTransferencias"));
+        setTextContent("declaradoTransferencias", getUrlParameter("declaradoTransferencias"));
+        setTextContent("diferenciaTransferencias", getUrlParameter("diferenciaTransferencias"));
+        setTextContent("totalIngresos", getUrlParameter("totalIngresos"));
+        setTextContent("saldoCaja", getUrlParameter("saldoCaja"));
+        setTextContent("totalDeclarado", getUrlParameter("totalDeclarado"));
+        setTextContent("totalDiferencias", getUrlParameter("totalDiferencias"));
+        setTextContent("efectivoEnCaja", getUrlParameter("efectivoEnCaja"));
+        setTextContent("diferencia", getUrlParameter("diferencia"));
+        setTextContent("efectivoInicial", getUrlParameter("efectivoInicial"));
+        setTextContent("ingresosTotales", getUrlParameter("ingresosTotales"));
+        setTextContent("egresosTotales", getUrlParameter("egresosTotales"));
+
+        // Detalle pagos
+        var pagos = toPaymentsArray();
+        renderPagosNormal(pagos);
+        renderPagosTicket(pagos);
+
+        // Trigger print when the page loads
+        window.onload = function () {
+            window.print();
+        };
+    </script>
+</body>
+</html>
